@@ -1,0 +1,5 @@
+# Fim de linha por tipo: o Bash não aceita CRLF, e o cmd prefere CRLF.
+* text=auto
+*.sh text eol=lf
+*.cmd text eol=crlf
+*.ps1 text eol=crlf
