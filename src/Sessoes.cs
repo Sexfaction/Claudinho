@@ -19,6 +19,9 @@ namespace Claudinho
         public int ProcessoClaude;  // o processo do Claude Code; quando ele some, a sessão sai
         public long InicioClaude;   // hora de início desse processo (o Windows reaproveita números)
         public int Subagentes;      // subagentes rodando agora
+        public int Comemoracoes;    // quantas vezes terminou: escolhe a comemoração da vez
+        public long SubagenteChegou = long.MinValue / 2; // ms do último SubagentStart (o mini cai do alto)
+        public long SubagenteSaiu = long.MinValue / 2;   // ms do último SubagentStop (o mini some num "pof")
         public long TurnoFechadoEm = -1; // ms do Stop (-1 = turno aberto)
         public Estado DepoisDoErro; // para onde o Erro volta quando acaba
         public string Detalhe;      // texto extra para a dica (o erro, a cota)
@@ -37,8 +40,8 @@ namespace Claudinho
     class Sessoes
     {
         public const int MaximoVisiveis = 4;
-        const long TempoAcordando = 600;
-        const long TempoComemorando = 2000;
+        public const long TempoAcordando = 1200; // a animação inteira (Acordando.cs) cabe nele
+        public const long TempoComemorando = 3000; // comemoração + ida para o sono (Terminou.cs)
         const long TempoErroNoMeio = 2500;    // falha de ferramenta: mostra e volta a trabalhar
         const long TempoErroNoFim = 5000;     // a resposta morreu por erro: mostra e dorme
         const long ErroMinimo = 1500;         // o erro aparece pelo menos isto, mesmo com o Claude seguindo
@@ -149,10 +152,12 @@ namespace Claudinho
                 case "SubagentStart":
                     if (atrasado) break;
                     s.Subagentes++;
+                    s.SubagenteChegou = agora;
                     if (s.Estado != Estado.PrecisaDeVoce) Trabalhar(s, agora, erroRecente);
                     break;
 
                 case "SubagentStop":
+                    if (s.Subagentes > 0) s.SubagenteSaiu = agora;
                     s.Subagentes = Math.Max(0, s.Subagentes - 1);
                     break;
 
@@ -168,6 +173,7 @@ namespace Claudinho
                 case "Stop":
                     s.TurnoFechadoEm = agora;
                     s.Subagentes = 0;
+                    if (s.Estado != Estado.Terminou) s.Comemoracoes++;
                     Mudar(s, Estado.Terminou, agora);
                     break;
 
@@ -248,7 +254,20 @@ namespace Claudinho
             for (int i = Lista.Count - 1; i >= 0; i--)
             {
                 Sessao s = Lista[i];
-                if (s.Fixa) continue;
+                if (s.Fixa)
+                {
+                    // --demo: a comemoração recomeça a cada 3,5 s com a próxima do baralho; o
+                    // "precisa de você" a cada 75 s, depois de passar pelas três fases da espera.
+                    if (s.Estado == Estado.Terminou && agora - s.Desde > TempoComemorando + 500)
+                    {
+                        s.Desde = agora;
+                        s.Comemoracoes++;
+                    }
+                    if (s.Estado == Estado.PrecisaDeVoce && agora - s.Desde > 75000) s.Desde = agora;
+                    long erro = s.DepoisDoErro == Estado.Dormindo ? TempoErroNoFim : TempoErroNoMeio;
+                    if (s.Estado == Estado.Erro && agora - s.Desde > erro + 500) s.Desde = agora;
+                    continue;
+                }
                 long noEstado = agora - s.Desde;
                 bool parado = agora - s.UltimoEvento > TrabalhandoSemEvento;
                 switch (s.Estado)

@@ -21,6 +21,9 @@ namespace Claudinho
     //                            assinatura ao mascote e escreve a linha que o terminal mostra
     //   Claudinho.exe --demo       mostra 4 estados lado a lado e o medidor, sem precisar do Claude
     //   Claudinho.exe --retrato X  grava em X (PNG) todos os estados, para conferir a arte
+    //   Claudinho.exe --filme X estado início passo quadros [subagentes] [fase] [depois do erro]
+    //                            grava em X (PNG) quadros seguidos de um estado (tempos em ms
+    //                            desde que entrou nele), para conferir uma animação no tempo
     static class Program
     {
         public const int Porta = 47821;
@@ -33,6 +36,7 @@ namespace Claudinho
             if (modo == "--statusline") return ModoStatusline();
             if (modo == "--permissao") return ModoPermissao();
             if (modo == "--retrato" && args.Length > 1) return Retrato(args[1]);
+            if (modo == "--filme" && args.Length > 5) return Filme(args);
 
             bool primeira;
             using (var unica = new Mutex(true, "Local\\Claudinho", out primeira))
@@ -281,6 +285,51 @@ namespace Claudinho
                     }
                 }
                 folha.Save(arquivo, ImageFormat.Png);
+            }
+            return 0;
+        }
+
+        // Quadros seguidos, 5 por linha; cada um no fundo escuro e no claro, com o tempo embaixo.
+        static int Filme(string[] args)
+        {
+            const int escala = 6, porLinha = 5, legenda = 14; // o dobro da tela, para ver pixel a pixel
+            var estado = (Estado)Enum.Parse(typeof(Estado), args[2], true);
+            long inicio = long.Parse(args[3]), passo = long.Parse(args[4]);
+            int quadros = int.Parse(args[5]);
+            int subagentes = args.Length > 6 ? int.Parse(args[6]) : 0;
+            int fase = args.Length > 7 ? int.Parse(args[7]) : 0; // muda os sorteios (ex.: qual comemoração)
+            var depoisDoErro = args.Length > 8 ? (Estado)Enum.Parse(typeof(Estado), args[8], true) : Estado.Dormindo;
+            int w = Sprites.Colunas * escala, h = Sprites.Linhas * escala;
+            int linhas = (quadros + porLinha - 1) / porLinha;
+
+            using (var folha = new Bitmap(porLinha * 2 * w, linhas * (h + legenda)))
+            using (Graphics g = Graphics.FromImage(folha))
+            using (var escuro = new SolidBrush(Color.FromArgb(32, 32, 32)))
+            using (var claro = new SolidBrush(Color.FromArgb(238, 238, 238)))
+            using (var fonte = new Font("Segoe UI", 7f))
+            {
+                g.Clear(Color.White);
+                for (int i = 0; i < quadros; i++)
+                {
+                    int x = (i % porLinha) * 2 * w, y = (i / porLinha) * (h + legenda);
+                    long momento = inicio + i * passo;
+                    var s = new Sessao();
+                    s.Estado = estado;
+                    s.Desde = 0;
+                    s.Subagentes = subagentes;
+                    s.Fase = fase;
+                    s.DepoisDoErro = depoisDoErro;
+                    g.FillRectangle(escuro, x, y, w, h);
+                    g.FillRectangle(claro, x + w, y, w, h);
+                    for (int lado = 0; lado < 2; lado++)
+                    {
+                        g.TranslateTransform(0, y);
+                        Sprites.Desenhar(g, s, momento, x + lado * w, escala);
+                        g.ResetTransform();
+                    }
+                    g.DrawString(momento + " ms", fonte, Brushes.Black, x + 2, y + h);
+                }
+                folha.Save(args[1], ImageFormat.Png);
             }
             return 0;
         }

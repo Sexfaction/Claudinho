@@ -10,14 +10,14 @@ termina e deixa aprovar pedidos de permissão por um balão. Um bichinho por ses
 
 | Estado | Quando | Animação | Som |
 |---|---|---|---|
-| dormindo | sessão parada, ou depois de terminar | olhos fechados, "Z" subindo | — |
-| acordando | você mandou um prompt | pulinho (0,6 s) | — |
-| trabalhando | entre o prompt e o fim da resposta | passinhos e três pontos; com subagentes, uma bolinha girando por subagente (até 3) | — |
-| precisa de você | pedido de permissão (na hora, pelo `PermissionRequest`), pergunta (AskUserQuestion) ou plano para aprovar | pula acenando, "!" amarelo | ping duplo |
-| terminou | a resposta acabou | braços para cima e check verde por 2 s | dois bipes subindo |
-| erro | ferramenta falhou (volta a trabalhar em 2,5 s) ou a resposta morreu por erro (dorme em 5 s) | treme, "X" vermelho | — |
-| sem cota | a resposta parou por limite da assinatura (`rate_limit`) | dormindo com bateria vazia piscando, até o próximo prompt | dois bipes descendo |
-| compactando | o Claude está resumindo a conversa | varre com uma vassoura | — |
+| dormindo | sessão parada, ou depois de terminar | sentado, olhos fechados (um traço), respirando devagar, uma fila de "Z" que diminui ao subir; a cada 12 s uma variação (baba e faz poça, ronca, bolha de ranho que estoura e o assusta, cabeceada, coça a cabeça) | — |
+| acordando | você mandou um prompt | susto com pulinho, espreguiça bocejando, puxa o teclado e a lata (1,2 s) | — |
+| trabalhando | entre o prompt e o fim da resposta | digita num teclado, em rajadas e pausas; a cada 12 s uma variação (gole de energético, estala os dedos, coça a cabeça pensando, martela o apagar, olha para você); com subagentes, um mini-Claudinho por subagente em cima da cabeça (até 3) | — |
+| precisa de você | pedido de permissão (na hora, pelo `PermissionRequest`), pergunta (AskUserQuestion) ou plano para aprovar | ergue uma plaquinha amarela com "!" e balança, olhando para você, com pulinhos; sem resposta, aos 20 s finca a placa e bate o pé, aos 60 s cruza os braços e tamborila (e ergue a placa de novo de vez em quando) | ping duplo |
+| terminou | a resposta acabou | comemora de olhos felizes (uma por resposta, as 4 em cada 4 respostas: pulos com confete, dancinha, brinde com a lata, soco no ar), depois fecha os olhos, empurra o teclado e senta para dormir (3 s) | dois bipes subindo |
+| erro | ferramenta falhou (volta a trabalhar em 2,5 s) ou a resposta morreu por erro (dorme em 5 s) | faísca no teclado e susto com olhos "x x"; ferramenta falhou: balança a cabeça e volta a digitar (às vezes põe a mão na testa); resposta morreu: o teclado solta fumaça, ele afunda, empurra o teclado e dorme | — |
+| sem cota | a resposta parou por limite da assinatura (`rate_limit`) | largado no chão, sem energia, com a lata vazia tombada; a cada 20 s vira a lata sobre a boca, sacode, cai uma gota, espia dentro e suspira; até o próximo prompt | dois bipes descendo |
+| compactando | o Claude está resumindo a conversa | em pé numa pilha de folhas, pula e achata a pilha a cada pulo; caem folhas novas e recomeça | — |
 
 **Balão de permissão:** quando o Claude pede permissão para uma ferramenta, um balão aparece
 sobre o bichinho da sessão com o que ele quer fazer e os botões **Permitir**, **Sempre
@@ -85,10 +85,19 @@ escuta o aviso do Windows de "foco mudou" e volta para cima no mesmo instante.
 
 | Arquivo | O que é |
 |---|---|
-| `src/Program.cs` | entrada; modos `--hook`, `--permissao`, `--statusline`, `--demo`, `--retrato` |
+| `src/Program.cs` | entrada; modos `--hook`, `--permissao`, `--statusline`, `--demo`, `--retrato`, `--filme` |
 | `src/Servidor.cs` | TCP puro em 127.0.0.1: `POST /evento`, `POST /permissao` (segura a conexão até o balão), `GET /estado`; recusa requisição com `Origin` (navegador) ou `Host` que não é esta máquina |
 | `src/Sessoes.cs` | regras: qual evento leva a qual estado, o que muda com o tempo, a cota |
-| `src/Sprites.cs` | a arte, em grades de caracteres, e o medidor de cota |
+| `src/Sprites.cs` | a célula, as cores, qual estado desenha e o medidor de cota |
+| `src/Corpo.cs` | o corpo montado por partes (olhos, boca, braços, respiração, inclinação), para as animações novas |
+| `src/Trabalhando.cs` | o trabalhando: teclado, lata, variações sorteadas, mini-Claudinhos |
+| `src/Dormindo.cs` | o dormindo: respiração, fila de "Z" e variações sorteadas |
+| `src/Acordando.cs` | o acordando: susto, espreguiçada, teclado chegando |
+| `src/Terminou.cs` | o terminou: as 4 comemorações e a ida para o sono |
+| `src/PrecisaDeVoce.cs` | o precisa de você: a placa e as três fases da espera |
+| `src/Erro.cs` | o erro: faísca, susto, mão na testa, fumaça |
+| `src/SemCota.cs` | o sem cota: largado, a lata vazia |
+| `src/Compactando.cs` | o compactando: a pilha de folhas |
 | `src/JanelaMascote.cs` | a janela: animação, clique, arrastar, menu, dica, topo da barra |
 | `src/Janelas.cs` | acha o Claude Code e o programa dono da janela; traz a janela para frente |
 | `src/Permissao.cs` | um pedido de permissão esperando resposta; o JSON de decisão |
@@ -107,6 +116,8 @@ Dados do mascote (`preferencias.txt` e `erros.log`) ficam em `%LOCALAPPDATA%\Cla
 compilar.cmd                                  compila para bin\Claudinho.exe (feche o mascote antes)
 bin\Claudinho.exe --demo                        mostra 4 estados e o medidor sem precisar do Claude
 bin\Claudinho.exe --retrato folha.png           grava todos os estados num PNG
+bin\Claudinho.exe --filme f.png trabalhando 0 100 20 [subagentes]
+                                                grava 20 quadros seguidos (a cada 100 ms) de um estado
 bash /c/claudinho/testes/testar-eventos.sh   teste de ponta a ponta (com o mascote fechado; bipa)
 & C:\claudinho\testes\testar-permissao.ps1   teste do balão, no PowerShell (com o mascote fechado)
 curl http://127.0.0.1:47821/estado            estado atual das sessões e a cota

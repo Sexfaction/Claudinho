@@ -43,7 +43,7 @@ confere "SessionStart abre o mascote e cria a sessão dormindo" "$(alfa dormindo
 
 hook_exe "$(ev UserPromptSubmit $A C:/projetos/alfa ',"prompt":"oi"')"
 confere "UserPromptSubmit acorda" "$(alfa acordando)"
-sleep 1
+sleep 1.5
 confere "acordando vira trabalhando sozinho" "$(alfa trabalhando)"
 
 hook_curl "$(ev PreToolUse $A C:/projetos/alfa ',"tool_name":"Bash","tool_input":{"command":"ls"}')"
@@ -93,7 +93,7 @@ hook_curl "$(ev PostToolUse $A C:/projetos/alfa ',"tool_name":"Bash"')"
 confere "PostToolUse atrasado depois do Stop é ignorado" "$(alfa terminou)"
 hook_curl "$(ev Notification $A C:/projetos/alfa ',"notification_type":"idle_prompt","message":"Claude is waiting for your input"')"
 confere "aviso de espera não acorda" "$(alfa terminou)"
-sleep 2.5
+sleep 3.5
 confere "terminou vira dormindo sozinho" "$(alfa dormindo)"
 
 hook_exe "$(ev UserPromptSubmit $A C:/projetos/alfa ',"prompt":"de novo"')"

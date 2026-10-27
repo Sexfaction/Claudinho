@@ -283,10 +283,11 @@ namespace Claudinho
         public void Demonstrar()
         {
             long agora = Agora;
+            // Três fixos; o 4º lugar fica para uma sessão real (os estados que dependem de
+            // transição, como o acordando, aparecem nela a cada prompt).
             sessoes.NovaFixa("dormindo", Estado.Dormindo, 0, agora);
-            sessoes.NovaFixa("trabalhando com 2 subagentes", Estado.Trabalhando, 2, agora);
-            sessoes.NovaFixa("precisa de você", Estado.PrecisaDeVoce, 0, agora);
-            sessoes.NovaFixa("sem cota", Estado.SemCota, 0, agora);
+            sessoes.NovaFixa("trabalhando", Estado.Trabalhando, 0, agora);
+            sessoes.NovaFixa("compactando a conversa", Estado.Compactando, 0, agora);
             sessoes.Cota.Uso5h = 72;
             sessoes.Cota.UsoSemana = 35;
             AjustarTamanho();
