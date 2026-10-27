@@ -1,0 +1,5 @@
+# Programa compilado: quem baixa roda compilar.cmd
+bin/
+
+# Cópias de segurança do settings.json pessoal (feitas antes de instalar os hooks)
+*.bak

@@ -1,0 +1,50 @@
+{
+  "statusLine": { "type": "command", "command": "\"C:/claudinho/bin/Claudinho.exe\" --statusline" },
+  "hooks": {
+    "SessionStart": [
+      { "hooks": [ { "type": "command", "command": "\"C:/claudinho/bin/Claudinho.exe\" --hook", "async": true } ] }
+    ],
+    "UserPromptSubmit": [
+      { "hooks": [ { "type": "command", "command": "\"C:/claudinho/bin/Claudinho.exe\" --hook", "async": true } ] }
+    ],
+    "PreToolUse": [
+      { "matcher": "*", "hooks": [ { "type": "command", "command": "curl -s --connect-timeout 0.2 -m 1 --data-binary @- http://127.0.0.1:47821/evento || exit 0", "async": true } ] }
+    ],
+    "PermissionRequest": [
+      { "matcher": "*", "hooks": [
+        { "type": "command", "command": "curl -s --connect-timeout 0.2 -m 1 --data-binary @- http://127.0.0.1:47821/evento || exit 0", "async": true },
+        { "type": "command", "command": "\"C:/claudinho/bin/Claudinho.exe\" --permissao", "timeout": 600 }
+      ] }
+    ],
+    "PostToolUse": [
+      { "matcher": "*", "hooks": [ { "type": "command", "command": "curl -s --connect-timeout 0.2 -m 1 --data-binary @- http://127.0.0.1:47821/evento || exit 0", "async": true } ] }
+    ],
+    "PostToolUseFailure": [
+      { "matcher": "*", "hooks": [ { "type": "command", "command": "curl -s --connect-timeout 0.2 -m 1 --data-binary @- http://127.0.0.1:47821/evento || exit 0", "async": true } ] }
+    ],
+    "SubagentStart": [
+      { "hooks": [ { "type": "command", "command": "curl -s --connect-timeout 0.2 -m 1 --data-binary @- http://127.0.0.1:47821/evento || exit 0", "async": true } ] }
+    ],
+    "SubagentStop": [
+      { "hooks": [ { "type": "command", "command": "curl -s --connect-timeout 0.2 -m 1 --data-binary @- http://127.0.0.1:47821/evento || exit 0", "async": true } ] }
+    ],
+    "PreCompact": [
+      { "hooks": [ { "type": "command", "command": "curl -s --connect-timeout 0.2 -m 1 --data-binary @- http://127.0.0.1:47821/evento || exit 0", "async": true } ] }
+    ],
+    "PostCompact": [
+      { "hooks": [ { "type": "command", "command": "curl -s --connect-timeout 0.2 -m 1 --data-binary @- http://127.0.0.1:47821/evento || exit 0", "async": true } ] }
+    ],
+    "Notification": [
+      { "hooks": [ { "type": "command", "command": "curl -s --connect-timeout 0.2 -m 1 --data-binary @- http://127.0.0.1:47821/evento || exit 0", "async": true } ] }
+    ],
+    "Stop": [
+      { "hooks": [ { "type": "command", "command": "curl -s --connect-timeout 0.2 -m 1 --data-binary @- http://127.0.0.1:47821/evento || exit 0", "async": true } ] }
+    ],
+    "StopFailure": [
+      { "hooks": [ { "type": "command", "command": "curl -s --connect-timeout 0.2 -m 1 --data-binary @- http://127.0.0.1:47821/evento || exit 0", "async": true } ] }
+    ],
+    "SessionEnd": [
+      { "hooks": [ { "type": "command", "command": "curl -s --connect-timeout 0.2 -m 1 --data-binary @- http://127.0.0.1:47821/evento || exit 0", "timeout": 5 } ] }
+    ]
+  }
+}
