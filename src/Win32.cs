@@ -11,7 +11,9 @@ namespace Claudinho
         public const int WS_EX_TOOLWINDOW = 0x00000080;
         public const int WS_EX_NOACTIVATE = 0x08000000;
 
+        public const int GWL_EXSTYLE = -20;
         public static readonly IntPtr HWND_TOPMOST = new IntPtr(-1);
+        public static readonly IntPtr HWND_NOTOPMOST = new IntPtr(-2);
         public const uint SWP_NOSIZE = 0x0001;
         public const uint SWP_NOMOVE = 0x0002;
         public const uint SWP_NOACTIVATE = 0x0010;
@@ -32,6 +34,15 @@ namespace Claudinho
 
         [DllImport("user32.dll")]
         public static extern bool ShowWindow(IntPtr hWnd, int cmd);
+
+        [DllImport("user32.dll")]
+        public static extern int GetWindowLong(IntPtr hWnd, int index);
+
+        [DllImport("user32.dll")]
+        public static extern IntPtr GetForegroundWindow();
+
+        [DllImport("user32.dll", CharSet = CharSet.Unicode)]
+        public static extern int GetClassName(IntPtr hWnd, StringBuilder texto, int maximo);
 
         [DllImport("shell32.dll")]
         public static extern int SHQueryUserNotificationState(out int state);
@@ -145,6 +156,42 @@ namespace Claudinho
 
         [DllImport("kernel32.dll", EntryPoint = "Process32NextW", CharSet = CharSet.Unicode)]
         public static extern bool Process32Next(IntPtr foto, ref PROCESSENTRY32 entrada);
+
+        public static bool TemTopo(IntPtr hwnd)
+        {
+            return (GetWindowLong(hwnd, GWL_EXSTYLE) & WS_EX_TOPMOST) != 0;
+        }
+
+        // Põe a janela no topo e confere. Às vezes o Windows responde "ok" ao HWND_TOPMOST e não faz
+        // nada: a janela fica sem a marca, no fundo da pilha, e repetir o pedido não adianta (o
+        // HWND_TOP também não). Passar antes por HWND_NOTOPMOST destrava. O que leva a esse estado
+        // ainda não se sabe; quem chama registra cada ocorrência. Devolve true se precisou destravar.
+        public static bool PorNoTopo(IntPtr hwnd)
+        {
+            const uint semMudarResto = SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE;
+            SetWindowPos(hwnd, HWND_TOPMOST, 0, 0, 0, 0, semMudarResto);
+            if (TemTopo(hwnd)) return false;
+            SetWindowPos(hwnd, HWND_NOTOPMOST, 0, 0, 0, 0, semMudarResto);
+            SetWindowPos(hwnd, HWND_TOPMOST, 0, 0, 0, 0, semMudarResto);
+            return true;
+        }
+
+        // Programa e classe da janela em foco, para o log. Nunca o título: pode ter dado pessoal.
+        public static string DescreverFoco()
+        {
+            IntPtr hwnd = GetForegroundWindow();
+            if (hwnd == IntPtr.Zero) return "nenhuma";
+            var classe = new StringBuilder(256);
+            GetClassName(hwnd, classe, classe.Capacity);
+            uint processo;
+            GetWindowThreadProcessId(hwnd, out processo);
+            try
+            {
+                using (var p = System.Diagnostics.Process.GetProcessById((int)processo))
+                    return p.ProcessName + "/" + classe;
+            }
+            catch (ArgumentException) { return "?/" + classe; } // fechou nesse meio-tempo
+        }
 
         public static bool EmTelaCheia()
         {

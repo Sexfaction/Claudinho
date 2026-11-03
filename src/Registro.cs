@@ -13,6 +13,17 @@ namespace Claudinho
 
         public static void Erro(string onde, Exception ex)
         {
+            Escrever(onde + ": " + ex);
+        }
+
+        // O que não é erro do programa, mas serve de pista.
+        public static void Aviso(string texto)
+        {
+            Escrever(texto);
+        }
+
+        static void Escrever(string linha)
+        {
             try
             {
                 lock (trava)
@@ -20,7 +31,7 @@ namespace Claudinho
                     Directory.CreateDirectory(Pasta);
                     string arquivo = Path.Combine(Pasta, "erros.log");
                     if (File.Exists(arquivo) && new FileInfo(arquivo).Length > 1024 * 1024) File.Delete(arquivo);
-                    File.AppendAllText(arquivo, DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss") + "  " + onde + ": " + ex + Environment.NewLine);
+                    File.AppendAllText(arquivo, DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss") + "  " + linha + Environment.NewLine);
                 }
             }
             catch (IOException) { } // sem onde registrar o erro; o mascote segue

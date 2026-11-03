@@ -1,11 +1,21 @@
 ﻿# Teste do balão de permissão: roda o mesmo comando do hook PermissionRequest
-# (Claudinho.exe --permissao) com pedidos de mentira e aperta os botões do balão pela
-# Automação de Interface do Windows (sem mexer no mouse). Confere o que o hook devolve
-# ao Claude. Rodar com o mascote FECHADO. Uso: powershell -File testar-permissao.ps1
+# (Claudinho.exe --permissao) com pedidos de mentira, acha os botões do balão pela Automação
+# de Interface do Windows e os aperta por mensagem (sem mexer no mouse). Confere o que o hook
+# devolve ao Claude. Rodar com o mascote FECHADO. Uso: powershell -File testar-permissao.ps1
+# Com os hooks ligados, sessões reais podem pedir permissão durante o teste: ele só aperta
+# botão em balão da sessão de teste (ver Da-Sessao-De-Teste) e, se um real aparecer, falha.
 param([string]$Foto = "")
 $ErrorActionPreference = "Stop"
 Add-Type -AssemblyName UIAutomationClient, UIAutomationTypes, System.Drawing
 [Console]::OutputEncoding = [Text.Encoding]::UTF8
+Add-Type @"
+using System; using System.Runtime.InteropServices;
+public static class Api {
+    [DllImport("user32.dll")] public static extern bool SetWindowPos(IntPtr h, IntPtr a, int x, int y, int cx, int cy, uint f);
+    [DllImport("user32.dll")] public static extern int GetWindowLong(IntPtr h, int i);
+    [DllImport("user32.dll")] public static extern IntPtr SendMessage(IntPtr h, int m, IntPtr w, IntPtr l);
+}
+"@
 $exe = "C:\claudinho\bin\Claudinho.exe"
 $url = "http://127.0.0.1:47821"
 $script:falhas = 0
@@ -54,14 +64,23 @@ function Balao {
     return $raiz.FindFirst([Windows.Automation.TreeScope]::Children, $cond)
 }
 
+# Aprovar um pedido real aqui seria aprovar sem o usuário ver: confere o título antes de apertar.
+function Da-Sessao-De-Teste($b) {
+    $todos = $b.FindAll([Windows.Automation.TreeScope]::Descendants, [Windows.Automation.Condition]::TrueCondition)
+    foreach ($e in $todos) { if ($e.Current.Name -like "teste-permissao quer usar *") { return $true } }
+    return $false
+}
+
 function Apertar($botao) {
     $b = Balao
     if ($b -eq $null) { return $false }
+    if (-not (Da-Sessao-De-Teste $b)) { "AVISO  balão de uma sessão real aberto: nada foi apertado" | Write-Host; return $false }
     $cond = New-Object Windows.Automation.PropertyCondition ([Windows.Automation.AutomationElement]::NameProperty), $botao
     $alvo = $b.FindFirst([Windows.Automation.TreeScope]::Descendants, $cond)
-    if ($alvo -eq $null) { return $false }
-    try { $alvo.GetCurrentPattern([Windows.Automation.InvokePattern]::Pattern).Invoke() }
-    catch [Windows.Automation.ElementNotEnabledException] { return $false } # botão ainda desligado
+    if ($alvo -eq $null -or -not $alvo.Current.IsEnabled) { return $false }
+    # Clique por mensagem: a Automação de Interface nem sempre oferece o padrão de "clicar" aqui
+    # (em 03/11/26 os botões apareciam como painéis genéricos). Não mexe no mouse do usuário.
+    [void][Api]::SendMessage([IntPtr]$alvo.Current.NativeWindowHandle, 0x00F5, [IntPtr]::Zero, [IntPtr]::Zero)
     return $true
 }
 
@@ -87,6 +106,23 @@ Confere "mascote fechado: o hook não abre o mascote" (-not (Get-Process Claudin
 Start-Process $exe
 Start-Sleep -Milliseconds 800
 Evento "{""hook_event_name"":""UserPromptSubmit"",""session_id"":""$sessao"",""cwd"":""C:/projetos/teste-permissao""}"
+
+# ---- Sempre no topo: se a marca cair, o programa recoloca sozinho, esteja onde estiver ----
+$condJanela = New-Object Windows.Automation.PropertyCondition ([Windows.Automation.AutomationElement]::NameProperty), "Claudinho"
+$janela = [IntPtr]::Zero
+for ($i = 0; $i -lt 30 -and $janela -eq [IntPtr]::Zero; $i++) {
+    $e = [Windows.Automation.AutomationElement]::RootElement.FindFirst([Windows.Automation.TreeScope]::Children, $condJanela)
+    if ($e -ne $null) { $janela = [IntPtr]$e.Current.NativeWindowHandle } else { Start-Sleep -Milliseconds 100 }
+}
+Confere "a janela do mascote aparece" ($janela -ne [IntPtr]::Zero) "não achei a janela"
+function TemTopo { ([Api]::GetWindowLong($janela, -20) -band 8) -ne 0 }
+for ($i = 0; $i -lt 30 -and -not (TemTopo); $i++) { Start-Sleep -Milliseconds 100 }
+Confere "a janela está com a marca de topo" (TemTopo) "sem a marca"
+[void][Api]::SetWindowPos($janela, [IntPtr](-2), 0, 0, 0, 0, 0x13)
+Confere "tirar a marca de fora funciona (o teste vale)" (-not (TemTopo)) "a marca não saiu"
+$t = [Diagnostics.Stopwatch]::StartNew()
+while (-not (TemTopo) -and $t.ElapsedMilliseconds -lt 3000) { Start-Sleep -Milliseconds 50 }
+Confere "sem a marca, o programa recoloca sozinho ($($t.ElapsedMilliseconds) ms)" (TemTopo) "não voltou em 3 s"
 
 # ---- Permitir ----
 $p = Iniciar-Hook (Pedido $sessao "Bash" $entradaBash $sugestao)

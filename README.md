@@ -106,7 +106,8 @@ escuta o aviso do Windows de "foco mudou" e volta para cima no mesmo instante.
 | `src/Preferencias.cs` | posição, som e sempre no topo, num arquivo só |
 | `src/Win32.cs`, `src/Registro.cs` | chamadas ao Windows; log de erros |
 | `testes/testar-eventos.sh` | teste de ponta a ponta com os mesmos comandos dos hooks |
-| `testes/testar-permissao.ps1` | teste do balão: aperta os botões pela Automação de Interface do Windows, sem mexer no mouse (arquivo em UTF-8 com BOM, senão o PowerShell 5.1 lê errado) |
+| `testes/testar-permissao.ps1` | teste do balão e do sempre no topo: acha os botões pela Automação de Interface do Windows e os aperta por mensagem, sem mexer no mouse; só aperta balão da sessão de teste (arquivo em UTF-8 com BOM, senão o PowerShell 5.1 lê errado) |
+| `testes/TesteTopo.cs`, `testes/testar-topo.cmd` | teste do destrave do topo, com o estado "preso" simulado |
 
 Dados do mascote (`preferencias.txt` e `erros.log`) ficam em `%LOCALAPPDATA%\Claudinho`.
 
@@ -119,7 +120,8 @@ bin\Claudinho.exe --retrato folha.png           grava todos os estados num PNG
 bin\Claudinho.exe --filme f.png trabalhando 0 100 20 [subagentes]
                                                 grava 20 quadros seguidos (a cada 100 ms) de um estado
 bash /c/claudinho/testes/testar-eventos.sh   teste de ponta a ponta (com o mascote fechado; bipa)
-& C:\claudinho\testes\testar-permissao.ps1   teste do balão, no PowerShell (com o mascote fechado)
+& C:\claudinho\testes\testar-permissao.ps1   teste do balão e do topo, no PowerShell (com o mascote fechado)
+testes\testar-topo.cmd                        teste do destrave do topo (não toca no mascote)
 curl http://127.0.0.1:47821/estado            estado atual das sessões e a cota
 ```
 

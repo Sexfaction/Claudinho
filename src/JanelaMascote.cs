@@ -30,6 +30,7 @@ namespace Claudinho
         int ancoraX, ancoraBase;    // canto inferior esquerdo do grupo (medidor + bichinhos)
         DateTime escondidoAte = DateTime.MinValue;
         bool sempreNoTopo, somLigado;
+        DateTime ultimoDestrave = DateTime.MinValue; // limita o log do topo destravado
         bool naoPerturbe;           // não gravado: volta desligado quando o mascote reabre
         readonly List<PedidoPermissao> pedidos = new List<PedidoPermissao>(); // na fila, o 1º está no balão
         Balao balao;
@@ -202,8 +203,7 @@ namespace Claudinho
             int x = Math.Max(area.Left, Math.Min(centro - balao.Width / 2, area.Right - balao.Width));
             int y = Math.Max(area.Top, Top + 3 * escala - balao.Height);
             balao.Location = new Point(x, y);
-            Win32.SetWindowPos(balao.Handle, Win32.HWND_TOPMOST, 0, 0, 0, 0,
-                Win32.SWP_NOMOVE | Win32.SWP_NOSIZE | Win32.SWP_NOACTIVATE);
+            PorNoTopo(balao.Handle, "balão");
         }
 
         // O pedido se resolveu por outro caminho: a ferramenta já rodou (mesmo nome e entrada),
@@ -312,16 +312,14 @@ namespace Claudinho
         void AoMudarFoco()
         {
             if (sempreNoTopo && Visible) VoltarAoTopo();
-            if (balao != null && !balao.IsDisposed)
-                Win32.SetWindowPos(balao.Handle, Win32.HWND_TOPMOST, 0, 0, 0, 0,
-                    Win32.SWP_NOMOVE | Win32.SWP_NOSIZE | Win32.SWP_NOACTIVATE);
+            if (balao != null && !balao.IsDisposed) PorNoTopo(balao.Handle, "balão");
             repique.Stop();
             repique.Start();
         }
 
         // A cada 2 s e a cada troca de foco: tira as sessões cujo Claude fechou; some em tela cheia
         // (vídeo, jogo, apresentação), escondido pelo menu ou sem sessão; só mexe na ordem das
-        // janelas se algo cobriu o mascote.
+        // janelas se o mascote perdeu a marca de topo ou se algo o cobriu.
         void Vigiar()
         {
             var antes = sessoes.Lista.ConvertAll(x => x.Id);
@@ -347,7 +345,7 @@ namespace Claudinho
                 Win32.ShowWindow(Handle, Win32.SW_SHOWNOACTIVATE);
                 if (sempreNoTopo) VoltarAoTopo();
             }
-            else if (sempreNoTopo && Coberto())
+            else if (sempreNoTopo && (!Win32.TemTopo(Handle) || Coberto()))
             {
                 VoltarAoTopo();
             }
@@ -370,8 +368,20 @@ namespace Claudinho
 
         void VoltarAoTopo()
         {
-            Win32.SetWindowPos(Handle, Win32.HWND_TOPMOST, 0, 0, 0, 0,
-                Win32.SWP_NOMOVE | Win32.SWP_NOSIZE | Win32.SWP_NOACTIVATE);
+            PorNoTopo(Handle, "janela");
+        }
+
+        // Quando o Windows ignorou o pedido, registra o contexto (no máximo uma vez por minuto):
+        // é a pista para descobrir o que leva a janela a esse estado.
+        void PorNoTopo(IntPtr janela, string qual)
+        {
+            if (!Win32.PorNoTopo(janela)) return;
+            if ((DateTime.Now - ultimoDestrave).TotalMinutes < 1) return;
+            ultimoDestrave = DateTime.Now;
+            Registro.Aviso("topo destravado (" + qual + "): funcionou=" + Win32.TemTopo(janela)
+                + " arrastando=" + arrastando.HasValue + " visivel=" + Visible
+                + " tela_cheia=" + Win32.EmTelaCheia() + " sessoes=" + sessoes.Lista.Count
+                + " foco=" + Win32.DescreverFoco());
         }
 
         // Olha o que está na tela num ponto do corpo do primeiro bichinho (coluna 10, linha 14
